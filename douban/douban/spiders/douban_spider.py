@@ -15,26 +15,34 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.selector import Selector
 from douban.items import DoubanItem
 from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
+import scrapy
+
 # import sys
 # reload(sys)
 # sys.setdefaultencoding('utf8')
 
 class DoubanSpider(CrawlSpider) :
 
-    name = "douban" 
-    allowed_domains = ["movie.douban.com"]
-    start_urls = ["http://movie.douban.com/top250"]
-    rules = (
-        #将所有符合正则表达式的url加入到抓取列表中
-        Rule(SgmlLinkExtractor(allow = (r'http://movie\.douban\.com/top250\?start=\d+&filter=&type=',))),
-        #将所有符合正则表达式的url请求后下载网页代码, 形成response后调用自定义回调函数
-        Rule(SgmlLinkExtractor(allow = (r'http://movie\.douban\.com/subject/\d+', )), callback = 'parse_page', follow = True),
-        )
+    name = "douban"
+    start_urls = ["https://www.douban.com/group/explore"]
+    allowed_domains = ["www.douban.com"]
 
-    def parse_page(self, response) :
+    def start_requests(self):
+        for i, url in enumerate(self.start_urls):
+            request = scrapy.Request(url, callback=self.parse)
+            request.cookies['over18'] = 1
+            request.headers['User-Agent'] = (
+                'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, '
+                'like Gecko) Chrome/45.0.2454.85 Safari/537.36'
+            )
+            yield request
+
+    def parse(self, response) :
         sel = Selector(response)
         item = DoubanItem()
-        item['name'] = sel.xpath('//h1/span[@property="v:itemreviewed"]/text()').extract()
-        item['description'] = sel.xpath('//div/span[@property="v:summary"]/text()').extract()
-        item['url'] = response.url
+        print "********************"
+        print sel.xpath('//h1/span[@property="v:itemreviewed"]/text()').extract()
+        #item['name'] = sel.xpath('//h1/span[@property="v:itemreviewed"]/text()').extract()
+        #item['description'] = sel.xpath('//div/span[@property="v:summary"]/text()').extract()
+        #item['url'] = response.url
         return item
